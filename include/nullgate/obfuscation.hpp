@@ -17,27 +17,46 @@ namespace nullgate {
 
 class obfuscation {
 public:
-  template <class T, std::size_t N>
-  struct decayable_array : public std::array<T, N> {
-    constexpr operator const T *() const { return this->data(); }
+  using DataUnit = char;
 
-    constexpr operator std::string_view() const {
-      return std::string_view(this->data());
+  template <std::size_t N> class ConstData : public std::array<DataUnit, N> {
+  public:
+    std::vector<unsigned char> raw() const {
+      return std::vector<unsigned char>(this->begin(), this->end());
+    }
+    std::string string() const {
+      return std::string(this->begin(), this->end());
+    }
+  };
+
+  class RuntimeData : public std::vector<DataUnit> {
+  public:
+    std::vector<unsigned char> raw() const {
+      return std::vector<unsigned char>(this->begin(), this->end());
+    }
+    std::string string() const {
+      return std::string(this->begin(), this->end());
     }
   };
 
   // TODO: make this more declarative
   template <std::size_t N>
-  static consteval decayable_array<char, N> xorConst(const char (&str)[N]) {
+  static consteval ConstData<N> xorConst(const DataUnit (&data)[N]) {
     constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
-    decayable_array<char, N> encoded{};
-    for (size_t i{}; i < N - 1; i++) {
-      encoded.at(i) = str[i] ^ key.at(i % key.length());
+    ConstData<N> encoded{};
+    for (size_t i{}; i < N; i++) {
+      encoded.at(i) = data[i] ^ key.at(i % key.length());
     }
     return encoded;
   }
 
-  static std::string xorRuntime(std::string_view str);
+  template <std::size_t N> static RuntimeData xorRuntime(ConstData<N> data) {
+    constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
+    RuntimeData container{};
+    for (int i{}; i < data.size(); i++)
+      container.push_back(data.at(i) ^ key.at(i % key.length()));
+    return container;
+  }
 
   static inline consteval uint64_t fnv1Const(const char *str) {
     const uint64_t fnvOffsetBasis = 14695981039346656037U;
@@ -82,6 +101,6 @@ private:
   [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
                "generates a random key every time a fresh build is made")]]
   static uint8_t char2int(char c);
-};
+}; // namespace nullgate
 
 } // namespace nullgate
