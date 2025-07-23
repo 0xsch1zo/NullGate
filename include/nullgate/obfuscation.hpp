@@ -6,6 +6,8 @@
 #include <string_view>
 #include <vector>
 
+[[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+             "generates a random key every time a fresh build is made")]]
 inline const std::string KEY = "FfqO3ZQ6XJ+SICAp";
 
 namespace nullgate {
@@ -52,19 +54,33 @@ public:
   // Don't use for hardcoded strings, the string won't be obfuscated
   static uint64_t fnv1Runtime(const char *str);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::string xorEncode(const std::string &in);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::string xorDecode(const std::string &in);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::vector<unsigned char> hex2bin(const std::string &hexString);
 
 private:
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::string base64Encode(const std::string &in);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::string base64Decode(const std::string &in);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static std::string xorHash(const std::string &str);
 
+  [[deprecated("Deprecated in favour of xorCrypt which is consteval and "
+               "generates a random key every time a fresh build is made")]]
   static uint8_t char2int(char c);
 };
 
