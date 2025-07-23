@@ -1,23 +1,42 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 inline const std::string KEY = "FfqO3ZQ6XJ+SICAp";
 
 namespace nullgate {
 
+#define INNER_TO_STRING(x) #x
+#define TO_STRING(x) INNER_TO_STRING(x)
+
 class obfuscation {
-  static std::string base64Encode(const std::string &in);
-
-  static std::string base64Decode(const std::string &in);
-
-  static std::string xorHash(const std::string &str);
-
-  static uint8_t char2int(char c);
-
 public:
+  template <class T, std::size_t N>
+  struct decayable_array : public std::array<T, N> {
+    constexpr operator const T *() const { return this->data(); }
+
+    constexpr operator std::string_view() const {
+      return std::string_view(this->data());
+    }
+  };
+
+  // TODO: make this more declarative
+  template <std::size_t N>
+  static consteval decayable_array<char, N> xorConst(const char (&str)[N]) {
+    constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
+    decayable_array<char, N> encoded{};
+    for (size_t i{}; i < N - 1; i++) {
+      encoded.at(i) = str[i] ^ key.at(i % key.length());
+    }
+    return encoded;
+  }
+
+  static std::string xorRuntime(std::string_view str);
+
   static inline consteval uint64_t fnv1Const(const char *str) {
     const uint64_t fnvOffsetBasis = 14695981039346656037U;
     const uint64_t fnvPrime = 1099511628211;
@@ -38,6 +57,15 @@ public:
   static std::string xorDecode(const std::string &in);
 
   static std::vector<unsigned char> hex2bin(const std::string &hexString);
+
+private:
+  static std::string base64Encode(const std::string &in);
+
+  static std::string base64Decode(const std::string &in);
+
+  static std::string xorHash(const std::string &str);
+
+  static uint8_t char2int(char c);
 };
 
 } // namespace nullgate

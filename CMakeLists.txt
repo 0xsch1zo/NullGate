@@ -52,6 +52,11 @@ target_compile_features(nullgate
     PUBLIC cxx_std_23
 )
 
+string(RANDOM LENGTH 8 KEY)
+target_compile_definitions(nullgate
+    PUBLIC NULLGATE_KEY=${KEY}
+)
+
 if (WIN32)
     target_compile_options(nullgate
         PUBLIC /MT

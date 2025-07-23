@@ -18,6 +18,15 @@ uint64_t obfuscation::fnv1Runtime(const char *str) {
   return hash;
 }
 
+std::string obfuscation::xorRuntime(std::string_view str) {
+  constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
+  std::string encoded;
+  encoded.reserve(str.size());
+  for (int i{}; i < str.size(); i++)
+    encoded.push_back(str[i] ^ key.at(i % key.length()));
+  return encoded;
+}
+
 std::string obfuscation::xorHash(const std::string &str) {
   std::string output;
   output.reserve(str.length());
