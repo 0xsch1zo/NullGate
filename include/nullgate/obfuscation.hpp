@@ -16,6 +16,16 @@ namespace nullgate {
 #define TO_STRING(x) INNER_TO_STRING(x)
 
 class obfuscation {
+private:
+  template <std::size_t N> struct LiteralString {
+    consteval LiteralString(const char (&s)[N]) {
+      std::copy(s, s + N, &inner[0]);
+    }
+
+    static constexpr std::size_t size = N;
+    char inner[N]{};
+  };
+
 public:
   using DataUnit = char;
 
@@ -41,7 +51,7 @@ public:
 
   // TODO: make this more declarative
   template <std::size_t N>
-  static consteval ConstData<N> xorConst(const DataUnit (&data)[N]) {
+  static consteval ConstData<N> xorConst(const char (&data)[N]) {
     constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
     ConstData<N> encoded{};
     for (size_t i{}; i < N; i++) {
@@ -56,6 +66,11 @@ public:
     for (int i{}; i < data.size(); i++)
       container.push_back(data.at(i) ^ key.at(i % key.length()));
     return container;
+  }
+
+  template <LiteralString literal> static RuntimeData xorRuntimeDecrypted() {
+    constexpr auto xored = xorConst(literal.inner);
+    return xorRuntime(xored);
   }
 
   static inline consteval uint64_t fnv1Const(const char *str) {
