@@ -19,10 +19,12 @@ class obfuscation {
 private:
   template <std::size_t N> struct LiteralString {
     consteval LiteralString(const char (&s)[N]) {
+      static_assert(N >= 1, "String literal should be at least of size 1 "
+                            "counting the null character");
       std::copy(s, s + N, &inner[0]);
     }
 
-    static constexpr std::size_t size = N;
+    static constexpr std::size_t size = N - 1;
     char inner[N]{};
   };
 
@@ -49,12 +51,13 @@ public:
     }
   };
 
-  // TODO: make this more declarative
   template <std::size_t N>
-  static consteval ConstData<N> xorConst(const char (&data)[N]) {
+  static consteval ConstData<N - 1> xorConst(const char (&data)[N]) {
+    static_assert(N >= 1, "String literal should be at least of size 1 "
+                          "counting the null character");
     constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
-    ConstData<N> encoded{};
-    for (size_t i{}; i < N; i++) {
+    ConstData<N - 1> encoded{};
+    for (size_t i{}; i < N - 1; i++) {
       encoded.at(i) = data[i] ^ key.at(i % key.length());
     }
     return encoded;
@@ -73,6 +76,7 @@ public:
     return xorRuntime(xored);
   }
 
+  // TODO: make this more imperative
   static inline consteval uint64_t fnv1Const(const char *str) {
     const uint64_t fnvOffsetBasis = 14695981039346656037U;
     const uint64_t fnvPrime = 1099511628211;
