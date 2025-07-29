@@ -110,6 +110,8 @@ endif()
 
 
 if (NULLGATE_DEPRACTED_HASHER)
+    message(DEPRECATION "The hasher is depracted in favour of"
+        "xorConst, xorRuntime and xorRuntimeDecrypted functions")
     include(ExternalProject)
     ExternalProject_Add(hasher
         PREFIX ${PROJECT_SOURCE_DIR}/src/hasher

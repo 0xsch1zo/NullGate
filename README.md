@@ -1,15 +1,19 @@
 # NullGate
 This project implements a comfortable and modern way to use the NTAPI functions using indirect syscalls, coupled with the [FreshyCalls](https://github.com/crummie5/FreshyCalls) method with a little twist for dynamic syscall number retrieval.
-It also uses a technique that I haven't seen being metioned to bypass windows defender's memory scanning. It also implements a classic PoC process injector.
+It also uses a technique that I haven't seen being mentioned to bypass windows defender's memory scanning. It also implements a classic PoC process injector.
 
 ## Demo
 ![Demonstration of the sample](./assets/demo.gif)
 
 ## Usage
 
+> [!NOTE]
+> The following examples will use `namespace ng = nullgate` 
+
+### Syscalls
 The usage is pretty straight forward, here is a snippet demonstrating the main functionality:
 ```cpp
-nullgate::syscalls syscalls;
+ng::syscalls syscalls;
 typedef NTSTATUS NTAPI NtAllocateVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ _At_(*BaseAddress,
@@ -19,38 +23,64 @@ typedef NTSTATUS NTAPI NtAllocateVirtualMemory(
     _In_ ULONG AllocationType, _In_ ULONG PageProtection);
 
 auto status = syscalls.SCall<NtAllocateVirtualMemory>(
-      nullgate::obfuscation::fnv1Const("NtAllocateVirtualMemory"), processHandle,
+      ng::obfuscation::fnv1Const("NtAllocateVirtualMemory"), processHandle,
       &buf, 0, &regionSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 ```
-There's builtin typesafety. You just need to provide the definiton of the nt function that you want to call! You can easily get that from [ntdoc](https://ntdoc.m417z.com/). This is the recommended way to use the lib.<br><br>
+There's builtin type-safety. 
+You just need to provide the definiton of the nt function that you want to call! You can easily get that from [ntdoc](https://ntdoc.m417z.com/).
+This is the recommended way to use the lib.<br><br>
 For people who don't like c++ templating black magic or something the previous interface is still available:
 ```cpp
-auto status = syscalls.Call(nullgate::obfuscation::fnv1Const("NtAllocateVirtualMemory"),
+auto status = syscalls.Call(ng::obfuscation::fnv1Const("NtAllocateVirtualMemory"),
                          processHandle, (PVOID)&buf, (ULONG_PTR)0, &regionSize,
                          (ULONG)(MEM_RESERVE | MEM_COMMIT), (ULONG)PAGE_EXECUTE_READWRITE);
 ```
 Using this interface you <b>need</b> to cast the arguments to the right type, not doing this may cause [problems](https://github.com/0xsch1zo/NullGate/issues/2). <br><br>
-The `fnv1Const` method brings the joys of modern C++ to the maldev world. It is a `consteval` function, so it is guaranteed that it will get evaluated at compile time, replacing the readable function name with a fnv1 hash.<br><br>
-There is also a runtime equivalent called `fnv1Runtime` but of course it doesn't add the benefit of having our function names obfuscated. It is used by the implementation to check which function inside of ntdll to get the syscall number of.<br><br>
-There are routines that can xor encrypt/decrypt(multibyte key) and base64 encode/decode your payload or some message:
-```cpp
-if (!NT_SUCCESS(status))
-    throw std::runtime_error(
-        nullgate::obfuscation::xorDecode("BQkEI1c0dkJ4LU4naSJhGCcIFSNWej5YeD5DNmkzM"
-                               "x8lAwI8H3o3VzEmTjdpNCgELlxR") +
-        std::to_string(status));
-```
-The key for now is `FfqO3ZQ6XJ+SICAp`. 
-A hasher is also provided, after building the project, the binary will be accessible at `hasher-build/`(Before 1.1.2 it's `<build_dir>/_deps/nullgate-build/src/hasher`). 
-On windows it will probably be nested beneath a bunch of directories like `Release`, but it will be somewhere there.
-Just pipe something into it and it will spit out a base64 encoded and xored string.<br><br>
 
-To ease the encryption of shellcode a special functon is provided:
+### Encryption/hashing
+#### Hashing ntapi calls
 ```cpp
-auto decryptedShellcode =
-      nullgate::obfuscation::hex2bin(nullgate::obfuscation::xorDecode(encryptedShellcode))
+auto hash = ng::obfuscation::fnv1Const("NtAllocateVirtualMemory");
 ```
-The `hex2bin` function just turns a hex string into a vector of bytes, thanks to this you can just pipe the shellcode from msfvenom with the `-f hex` flag straight into the hasher and not have worry about the special characters.
+The previously demonstrated `fnv1Const` method brings the joys of modern C++ to the maldev world. It is a `consteval` function, so it is guaranteed that it will get evaluated at compile time, replacing the readable function name with a fnv1 hash.<br><br>
+There is also a runtime equivalent called `fnv1Runtime` but of course it doesn't add the benefit of having our function names obfuscated. It is used by the implementation to check which function inside of ntdll to get the syscall number of.<br><br>
+There are routines that can xor encrypt/decrypt(multibyte key):
+
+#### General xor encryption
+
+There are three routines for xor "encryption". The first one to cover would probably be `xorConst`
+```cpp
+ng::obfuscation::ConstData xored = ng::obfuscation::xorConst("some string"); // could be constexpr
+std::cout << xored.string();
+```
+This routine similarly to the `fnv1Const` function, is evaluated at compiler time, so `"some string"` will never appear in the binary, because the string will be stored in it's encypted form.
+But hey we need to actually make use of that data! `ConstData` is a thin wrapper around raw bytes that is of constant size. 
+It has two methods `raw()` and `string()`.
+`raw()` returns an `std::vector<unsigned char>` and `string` as the name suggests returns an `std::string`.
+> [!NOTE]
+> If you need to construct `ConstData` directly with a string literal use `std::to_array` to construct an intermediate array passed down to `ConstData`. 
+
+Of course we need currently xor encrypted data will be displayed which will look like garbage, we need something to decrypt this.
+
+`xorRuntime` is the second routine that is available. It as the name suggests the equivalent of `xorConst`.
+```cpp
+ng::obfuscation::ConstData data = ng::obfuscation::xorConst("some string");
+ng::obfuscation::DynamicData xored = ng::obfuscation::xorRuntime(data);
+std::cout << xored.string();
+```
+`DynamicData` has the same methods as `ConstData` with some added constructors for interoperability, and as the name suggests can be of size not known at compile time.
+<br>
+And finally the cherry on top which is `xorRuntimeDecrypted` it is a handy function for string literals that don't need to be manipulated when they're in the encrypted state.
+```cpp
+ng::obfuscation::DynamicData text = ng::obfuscation::xorRuntimeDecrypted<"some string">();
+std::cout << xored.string();
+
+```
+This will print out the same string as we have put in but it sits encrypted in the executable and gets decrypted at runtime. Isn't it cool!.
+
+##### The key
+Now someone might say everything is great but where is the key, in nullgate <NEW VERSION> the key gets randomly generated per each fresh build made!
+This reduces the chance of getting signatured even more.
 
 ### Adding nullgate to your project
 CMake FetchContent is supported. Here is an example of a simple CMakeLists.txt:
@@ -101,7 +131,7 @@ When windows defender will scan the memory of our process it will fail to do tha
 We can then resume the execution of our thread with `NtResumeThread`.
 This works, but what if a more competent security solution is being used? What would it do? 
 It would of course just use `VirtualProtect` to change the permissions of our page and detect msfvenom. 
-To bypass that I changed the strategy a bit. Instead of setting the page as `PAGE_NOACCESS`, during our first write to the memory of the process we can just put some junk data into the process(Yes it is required, or I'm just too stupid to find a way to get it working wihout this). 
+To bypass that I changed the strategy a bit. Instead of setting the page as `PAGE_NOACCESS`, during our first write to the memory of the process we can just put some junk data into the process(Yes it is required, or I'm just too stupid to find a way to get it working without this). 
 Then we create a thread in suspended state. 
 After that we write to the process our desired shellcode and finally we resume the thread using `NtResumeThread`. 
 With this technique we don't have to worry about our memory being accessed after the call to `NtCreateThreadEx` because there is nothing in there. 
