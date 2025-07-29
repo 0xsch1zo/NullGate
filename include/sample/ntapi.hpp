@@ -103,3 +103,5 @@ typedef NTSTATUS NTAPI NtClose(_In_ HANDLE Handle);
 typedef NTSTATUS NTAPI NtWaitForSingleObject(_In_ HANDLE Handle,
                                              _In_ BOOLEAN Alertable,
                                              _In_opt_ PLARGE_INTEGER Timeout);
+
+typedef NTSTATUS NTAPI NtQuerySystemTime(_Out_ PLARGE_INTEGER SystemTime);
