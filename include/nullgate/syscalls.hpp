@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <errhandlingapi.h>
 #include <map>
 #include <nullgate/obfuscation.hpp>
 #include <string>

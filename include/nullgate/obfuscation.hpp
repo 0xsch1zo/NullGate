@@ -1,7 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <iterator>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,6 +37,7 @@ public:
     std::vector<unsigned char> raw() const {
       return std::vector<unsigned char>(this->begin(), this->end());
     }
+
     std::string string() const {
       return std::string(this->begin(), this->end());
     }
@@ -41,6 +45,14 @@ public:
 
   class RuntimeData : public std::vector<DataUnit> {
   public:
+    RuntimeData() = default;
+
+    RuntimeData(std::string data)
+        : std::vector<DataUnit>(data.begin(), data.end()) {}
+
+    RuntimeData(std::vector<unsigned char> data)
+        : std::vector<DataUnit>(data.begin(), data.end()) {}
+
     std::vector<unsigned char> raw() const {
       return std::vector<unsigned char>(this->begin(), this->end());
     }
@@ -55,17 +67,24 @@ public:
                           "counting the null character");
     constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
     ConstData<N - 1> encoded{};
-    for (size_t i{}; i < N - 1; i++) {
-      encoded.at(i) = data[i] ^ key.at(i % key.length());
-    }
+    auto iter = std::views::zip(std::views::iota(0ULL, encoded.size()), data);
+    std::ranges::transform(iter, encoded.begin(), xorElement);
     return encoded;
   }
 
   template <std::size_t N> static RuntimeData xorRuntime(ConstData<N> data) {
-    constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
     RuntimeData container{};
-    for (int i{}; i < data.size(); i++)
-      container.push_back(data.at(i) ^ key.at(i % key.length()));
+    container.reserve(data.size());
+    auto iter = std::views::enumerate(data);
+    std::ranges::transform(iter, std::back_inserter(container), xorElement);
+    return container;
+  }
+
+  static RuntimeData xorRuntime(RuntimeData data) {
+    RuntimeData container{};
+    container.reserve(data.size());
+    auto iter = std::views::zip(std::views::iota(0ULL), data);
+    std::ranges::transform(iter, std::back_inserter(container), xorElement);
     return container;
   }
 
@@ -102,6 +121,12 @@ public:
   static std::vector<unsigned char> hex2bin(const std::string &hexString);
 
 private:
+  static constexpr char xorElement(std::tuple<size_t, char> indexed_element) {
+    constexpr std::string_view key = TO_STRING(NULLGATE_KEY);
+    auto [index, element] = indexed_element;
+    return element ^ key.at(index % key.length());
+  }
+
   static std::string base64Encode(const std::string &in);
 
   static std::string base64Decode(const std::string &in);
