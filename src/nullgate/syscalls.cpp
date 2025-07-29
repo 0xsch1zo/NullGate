@@ -1,3 +1,4 @@
+#include <cstring>
 #include <nullgate/obfuscation.hpp>
 #include <nullgate/syscalls.hpp>
 #include <stdexcept>
@@ -5,10 +6,16 @@
 
 namespace nullgate {
 
+#ifndef NDEBUG
+#define NULLGATE_DEBUG
+#endif
+
 syscalls::syscalls() {
   populateStubs();
   populateSyscalls();
 }
+
+using ob = obfuscation;
 
 void syscalls::populateStubs() {
   PPEB peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
@@ -36,13 +43,15 @@ void syscalls::populateStubs() {
       reinterpret_cast<PWORD>(ntdllBase + exportDir->AddressOfNameOrdinals);
 
   for (DWORD i{}; i < exportDir->NumberOfNames; i++) {
-    std::string funcName =
+    std::string realFuncName =
         reinterpret_cast<const char *>(ntdllBase + namesTable[i]);
-    if (funcName.starts_with(obfuscation::xorDecode("HBE="))) {
+
+    if (realFuncName.starts_with(ob::xorRuntimeDecrypted<"Zw">().string())) {
       auto funcAddr = reinterpret_cast<PDWORD>(
           ntdllBase + functionsTable[ordinalsTable[i]]);
-      stubMap.emplace(funcAddr,
-                      obfuscation::xorDecode("CBI=") + funcName.substr(2));
+      const auto funcName =
+          ob::xorRuntimeDecrypted<"Nt">().string() + realFuncName.substr(2);
+      stubMap.emplace(funcAddr, funcName);
     }
   }
 }
@@ -55,8 +64,12 @@ void syscalls::populateSyscalls() {
 
 DWORD syscalls::getSyscallNumber(const std::string &funcName) {
   if (!syscallNoMap.contains(funcName))
+#ifdef NULLGATE_DEBUG
     throw std::runtime_error(
-        obfuscation::xorDecode("ABMfLEczPlh4JEQnaSUuBSgCS28=") + funcName);
+        ob::xorRuntimeDecrypted<"Function not found">().string() + funcName);
+#else
+    throw std::runtime_error("");
+#endif
 
   return syscallNoMap.at(funcName);
 }
@@ -67,9 +80,13 @@ DWORD syscalls::getSyscallNumber(uint64_t funcNameHash) {
       return ntFuncPair.second;
   }
 
+#ifdef NULLGATE_DEBUG
   throw std::runtime_error(
-      obfuscation::xorDecode("ABMfLEczPlh4IkogIWMvHzJGFyBGNDUMeA==") +
+      ob::xorRuntimeDecrypted<"Function hash not found">().string() +
       std::to_string(funcNameHash));
+#else
+  throw std::runtime_error("");
+#endif
 }
 
 uintptr_t syscalls::getSyscallInstrAddr() {
@@ -80,8 +97,13 @@ uintptr_t syscalls::getSyscallInstrAddr() {
     if (memcmp(syscallOpcode, stubBase + i, sizeof(syscallOpcode)) == 0)
       return reinterpret_cast<uintptr_t>(stubBase + i);
   }
-  throw std::runtime_error(obfuscation::xorDecode(
-      "BQkEI1c0dkJ4LEI9LWMgUDUfAixSNj0WMSRYJzs2IgQvCR8="));
+#ifdef NULLGATE_DEBUG
+  throw std::runtime_error(
+      ob::xorRuntimeDecrypted<"Couldn't find a syscall instruction">()
+          .string());
+#else
+  throw std::runtime_error("");
+#endif
 }
 
 } // namespace nullgate
