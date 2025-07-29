@@ -22,12 +22,12 @@ void testXorConst() {
   auto unxored = ob::xorRuntime(xored).string();
   comp(unxored, testStrView, __FUNCTION__);
 
-  auto xoredRuntime = ob::xorRuntime(ob::RuntimeData(testStr));
+  auto xoredRuntime = ob::xorRuntime(ob::DynamicData(testStr));
   comp(xored.raw(), xoredRuntime.raw(), __FUNCTION__);
 }
 
 void testXorRuntime() {
-  auto xored = ob::xorRuntime(ob::RuntimeData(testStr));
+  auto xored = ob::xorRuntime(ob::DynamicData(testStr));
   auto unxored = ob::xorRuntime(xored);
   comp(unxored.string(), testStrView, __FUNCTION__);
 }

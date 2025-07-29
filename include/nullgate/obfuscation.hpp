@@ -43,14 +43,14 @@ public:
     }
   };
 
-  class RuntimeData : public std::vector<DataUnit> {
+  class DynamicData : public std::vector<DataUnit> {
   public:
-    RuntimeData() = default;
+    DynamicData() = default;
 
-    RuntimeData(std::string data)
+    DynamicData(std::string data)
         : std::vector<DataUnit>(data.begin(), data.end()) {}
 
-    RuntimeData(std::vector<unsigned char> data)
+    DynamicData(std::vector<unsigned char> data)
         : std::vector<DataUnit>(data.begin(), data.end()) {}
 
     std::vector<unsigned char> raw() const {
@@ -72,23 +72,23 @@ public:
     return encoded;
   }
 
-  template <std::size_t N> static RuntimeData xorRuntime(ConstData<N> data) {
-    RuntimeData container{};
+  template <std::size_t N> static DynamicData xorRuntime(ConstData<N> data) {
+    DynamicData container{};
     container.reserve(data.size());
     auto iter = std::views::enumerate(data);
     std::ranges::transform(iter, std::back_inserter(container), xorElement);
     return container;
   }
 
-  static RuntimeData xorRuntime(RuntimeData data) {
-    RuntimeData container{};
+  static DynamicData xorRuntime(DynamicData data) {
+    DynamicData container{};
     container.reserve(data.size());
     auto iter = std::views::zip(std::views::iota(0ULL), data);
     std::ranges::transform(iter, std::back_inserter(container), xorElement);
     return container;
   }
 
-  template <LiteralString literal> static RuntimeData xorRuntimeDecrypted() {
+  template <LiteralString literal> static DynamicData xorRuntimeDecrypted() {
     constexpr auto xored = xorConst(literal.inner);
     return xorRuntime(xored);
   }
