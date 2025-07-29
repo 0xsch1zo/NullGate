@@ -1,0 +1,44 @@
+#include <format>
+#include <nullgate/obfuscation.hpp>
+#include <stdexcept>
+
+using namespace nullgate;
+using ob = obfuscation;
+
+constexpr static const char testStr[] = "testing testing testing";
+constexpr static std::string_view testStrView = testStr;
+
+template <typename T, typename U>
+void comp(T left, U right, std::string_view func) {
+  if (left != right) {
+    throw std::runtime_error(std::format(
+        "in func: {}: \nleft: {}\t right: {}\n\tleft size:{}\n\tright size:{}",
+        func, left, right, left.size(), right.size()));
+  }
+}
+
+void testXorConst() {
+  auto xored = ob::xorConst(testStr);
+  auto unxored = ob::xorRuntime(xored).string();
+  comp(unxored, testStrView, __FUNCTION__);
+
+  auto xoredRuntime = ob::xorRuntime(ob::RuntimeData(testStr));
+  comp(xored.raw(), xoredRuntime.raw(), __FUNCTION__);
+}
+
+void testXorRuntime() {
+  auto xored = ob::xorRuntime(ob::RuntimeData(testStr));
+  auto unxored = ob::xorRuntime(xored);
+  comp(unxored.string(), testStrView, __FUNCTION__);
+}
+
+void testXorRuntimeDecrypted() {
+  auto allegedTestStr = ob::xorRuntimeDecrypted<testStr>(); // I'm going insane
+  comp(allegedTestStr.string(), testStrView, __FUNCTION__);
+}
+
+int main() {
+  testXorConst();
+  testXorRuntime();
+  testXorRuntimeDecrypted();
+}

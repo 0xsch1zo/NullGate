@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
+include(ExternalProject)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS OFF)
@@ -14,11 +15,13 @@ option(NULLGATE_CROSSCOMPILE
     "Crosscompile from linux to windows(uses mingw)" OFF)
 option(NULLGATE_DEPRECATED_HASHER
     "Compile the hasher which is unnecessary for v1.2.0" OFF)
+option(NULLGATE_BUILD_TESTS "Build tests for nullgate" OFF)
 
 message("┌─ Nullgate options ─────────────────────")
 message("│ NULLGATE_BUILD_SAMPLE        : ${NULLGATE_BUILD_SAMPLE}")
 message("│ NULLGATE_CROSSCOMPILE        : ${NULLGATE_CROSSCOMPILE}")
 message("│ NULLGATE_DEPRECATED_HASHER   : ${NULLGATE_DEPRECATED_HASHER}")
+message("│ NULLGATE_BUILD_TESTS:        : ${NULLGATE_BUILD_TESTS}")
 message("└────────────────────────────────────────")
 
 if (NULLGATE_CROSSCOMPILE)
@@ -32,29 +35,28 @@ else()
     project(nullgate CXX ASM)
 endif()
 
-project(sample)
 
 # Nullgate
 if (WIN32)
     add_library(nullgate
-        ./src/nullgate/syscalls_masm.asm
-        ./src/nullgate/syscalls.cpp
-        ./src/nullgate/obfuscation.cpp
-        ./include/nullgate/syscalls.hpp
-        ./include/nullgate/obfuscation.hpp
+        ${PROJECT_SOURCE_DIR}/src/nullgate/syscalls_masm.asm
+        ${PROJECT_SOURCE_DIR}/src/nullgate/syscalls.cpp
+        ${PROJECT_SOURCE_DIR}/src/nullgate/obfuscation.cpp
+        ${PROJECT_SOURCE_DIR}/include/nullgate/syscalls.hpp
+        ${PROJECT_SOURCE_DIR}/include/nullgate/obfuscation.hpp
     )
 else()
     add_library(nullgate
-        ./src/nullgate/syscalls.S
-        ./src/nullgate/syscalls.cpp
-        ./src/nullgate/obfuscation.cpp
-        ./include/nullgate/syscalls.hpp
-        ./include/nullgate/obfuscation.hpp
+        ${PROJECT_SOURCE_DIR}/src/nullgate/syscalls.S
+        ${PROJECT_SOURCE_DIR}/src/nullgate/syscalls.cpp
+        ${PROJECT_SOURCE_DIR}/src/nullgate/obfuscation.cpp
+        ${PROJECT_SOURCE_DIR}/include/nullgate/syscalls.hpp
+        ${PROJECT_SOURCE_DIR}/include/nullgate/obfuscation.hpp
     )
 endif()
 
 target_include_directories(nullgate
-    PUBLIC ./include/
+    PUBLIC ${PROJECT_SOURCE_DIR}/include/
 )
 
 target_compile_features(nullgate
@@ -82,12 +84,14 @@ endif()
 
 
 if(NULLGATE_BUILD_SAMPLE)
+    project(sample)
+
     add_executable(sample
-        ./src/sample/sample.cpp
+        ${PROJECT_SOURCE_DIR}/src/sample/sample.cpp
     )
 
     target_include_directories(sample
-        PRIVATE ./include/
+        PRIVATE ${PROJECT_SOURCE_DIR}/include/
     )
 
     target_link_libraries(sample
@@ -101,9 +105,12 @@ if(NULLGATE_BUILD_SAMPLE)
     endif()
 endif()
 
-if (NULLGATE_DEPRACTED_HASHER)
-    include(ExternalProject)
+if (NULLGATE_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
 
+
+if (NULLGATE_DEPRACTED_HASHER)
     ExternalProject_Add(hasher
         PREFIX ${PROJECT_SOURCE_DIR}/src/hasher
         SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/hasher
