@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+[[deprecated("hasher is deprecated in favour of xorConst, xorRuntime and "
+             "xorRuntimeDecrypted")]]
 int main() {
   std::vector<std::string> input;
   while (std::cin.good()) {

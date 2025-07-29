@@ -10,7 +10,16 @@ endif()
 
 set(HASHER_BUILD_DIR ${CMAKE_SOURCE_DIR}/hasher-build)
 option(NULLGATE_BUILD_SAMPLE "Build sample" OFF)
-option(NULLGATE_CROSSCOMPILE "Crosscompile from linux to windows(uses mingw)" OFF)
+option(NULLGATE_CROSSCOMPILE
+    "Crosscompile from linux to windows(uses mingw)" OFF)
+option(NULLGATE_DEPRECATED_HASHER
+    "Compile the hasher which is unnecessary for v1.2.0" OFF)
+
+message("┌─ Nullgate options ─────────────────────")
+message("│ NULLGATE_BUILD_SAMPLE        : ${NULLGATE_BUILD_SAMPLE}")
+message("│ NULLGATE_CROSSCOMPILE        : ${NULLGATE_CROSSCOMPILE}")
+message("│ NULLGATE_DEPRECATED_HASHER   : ${NULLGATE_DEPRECATED_HASHER}")
+message("└────────────────────────────────────────")
 
 if (NULLGATE_CROSSCOMPILE)
     set(CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++)
@@ -92,14 +101,17 @@ if(NULLGATE_BUILD_SAMPLE)
     endif()
 endif()
 
-include(ExternalProject)
+if (NULLGATE_DEPRACTED_HASHER)
+    include(ExternalProject)
 
-ExternalProject_Add(hasher
-    PREFIX ${PROJECT_SOURCE_DIR}/src/hasher
-    SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/hasher
-    BINARY_DIR ${HASHER_BUILD_DIR}
-    DOWNLOAD_DIR ${HASHER_BUILD_DIR}
-    TMP_DIR ${HASHER_BUILD_DIR}
-    STAMP_DIR ${HASHER_BUILD_DIR}
-    INSTALL_COMMAND ""
-)
+    ExternalProject_Add(hasher
+        PREFIX ${PROJECT_SOURCE_DIR}/src/hasher
+        SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/hasher
+        BINARY_DIR ${HASHER_BUILD_DIR}
+        DOWNLOAD_DIR ${HASHER_BUILD_DIR}
+        TMP_DIR ${HASHER_BUILD_DIR}
+        STAMP_DIR ${HASHER_BUILD_DIR}
+        INSTALL_COMMAND ""
+    )
+endif()
+
