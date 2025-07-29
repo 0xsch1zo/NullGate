@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.25)
-include(ExternalProject)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BUILD_SHARED_LIBS OFF)
@@ -111,6 +110,7 @@ endif()
 
 
 if (NULLGATE_DEPRACTED_HASHER)
+    include(ExternalProject)
     ExternalProject_Add(hasher
         PREFIX ${PROJECT_SOURCE_DIR}/src/hasher
         SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/hasher

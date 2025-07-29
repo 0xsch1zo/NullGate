@@ -33,7 +33,10 @@ void testXorRuntime() {
 }
 
 void testXorRuntimeDecrypted() {
-  auto allegedTestStr = ob::xorRuntimeDecrypted<testStr>(); // I'm going insane
+  // I'm going insane
+  auto allegedTestStr =
+      ob::xorRuntimeDecrypted<"testing testing testing">(); // msvc is so
+                                                            // goddamn stupid
   comp(allegedTestStr.string(), testStrView, __FUNCTION__);
 }
 
