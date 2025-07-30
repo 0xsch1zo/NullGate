@@ -13,7 +13,7 @@ option(NULLGATE_BUILD_SAMPLE "Build sample" OFF)
 option(NULLGATE_CROSSCOMPILE
     "Crosscompile from linux to windows(uses mingw)" OFF)
 option(NULLGATE_DEPRECATED_HASHER
-    "Compile the hasher which is unnecessary for v1.2.0" OFF)
+    "Compile the hasher which is unnecessary for 1.2.0" OFF)
 option(NULLGATE_BUILD_TESTS "Build tests for nullgate" OFF)
 
 message("┌─ Nullgate options ─────────────────────")

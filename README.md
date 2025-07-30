@@ -6,7 +6,6 @@ It also uses a technique that I haven't seen being mentioned to bypass windows d
 ![Demonstration of the sample](./assets/demo.gif)
 
 ## Usage
-
 > [!NOTE]
 > The following examples will use `namespace ng = nullgate` 
 
@@ -22,16 +21,17 @@ typedef NTSTATUS NTAPI NtAllocateVirtualMemory(
     _In_ ULONG_PTR ZeroBits, _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType, _In_ ULONG PageProtection);
 
-auto status = syscalls.SCall<NtAllocateVirtualMemory>(
+NTSTATUS status = syscalls.SCall<NtAllocateVirtualMemory>(
       ng::obfuscation::fnv1Const("NtAllocateVirtualMemory"), processHandle,
       &buf, 0, &regionSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 ```
 There's builtin type-safety. 
-You just need to provide the definiton of the nt function that you want to call! You can easily get that from [ntdoc](https://ntdoc.m417z.com/).
-This is the recommended way to use the lib.<br><br>
+You just need to provide the definition of the nt function that you want to call! You can easily get that from [ntdoc](https://ntdoc.m417z.com/).
+This is the recommended way to use the lib.
+#### The previous although non-deprecated interface
 For people who don't like c++ templating black magic or something the previous interface is still available:
 ```cpp
-auto status = syscalls.Call(ng::obfuscation::fnv1Const("NtAllocateVirtualMemory"),
+NTSTATUS status = syscalls.Call(ng::obfuscation::fnv1Const("NtAllocateVirtualMemory"),
                          processHandle, (PVOID)&buf, (ULONG_PTR)0, &regionSize,
                          (ULONG)(MEM_RESERVE | MEM_COMMIT), (ULONG)PAGE_EXECUTE_READWRITE);
 ```
@@ -40,7 +40,7 @@ Using this interface you <b>need</b> to cast the arguments to the right type, no
 ### Encryption/hashing
 #### Hashing ntapi calls
 ```cpp
-auto hash = ng::obfuscation::fnv1Const("NtAllocateVirtualMemory");
+uint64_t hash = ng::obfuscation::fnv1Const("NtAllocateVirtualMemory");
 ```
 The previously demonstrated `fnv1Const` method brings the joys of modern C++ to the maldev world. It is a `consteval` function, so it is guaranteed that it will get evaluated at compile time, replacing the readable function name with a fnv1 hash.<br><br>
 There is also a runtime equivalent called `fnv1Runtime` but of course it doesn't add the benefit of having our function names obfuscated. It is used by the implementation to check which function inside of ntdll to get the syscall number of.<br><br>
@@ -50,8 +50,12 @@ There are routines that can xor encrypt/decrypt(multibyte key):
 
 There are three routines for xor "encryption". The first one to cover would probably be `xorConst`
 ```cpp
-ng::obfuscation::ConstData xored = ng::obfuscation::xorConst("some string"); // could be constexpr
+constexpr ng::obfuscation::ConstData xored = ng::obfuscation::xorConst("some string");
 std::cout << xored.string();
+```
+Possible output:
+```
+<Y:-E&X0
 ```
 This routine similarly to the `fnv1Const` function, is evaluated at compiler time, so `"some string"` will never appear in the binary, because the string will be stored in it's encypted form.
 But hey we need to actually make use of that data! `ConstData` is a thin wrapper around raw bytes that is of constant size. 
@@ -64,22 +68,23 @@ Of course we need currently xor encrypted data will be displayed which will look
 
 `xorRuntime` is the second routine that is available. It as the name suggests the equivalent of `xorConst`.
 ```cpp
-ng::obfuscation::ConstData data = ng::obfuscation::xorConst("some string");
-ng::obfuscation::DynamicData xored = ng::obfuscation::xorRuntime(data);
-std::cout << xored.string();
+ng::obfuscation::ConstData xored = ng::obfuscation::xorConst("some string");
+ng::obfuscation::DynamicData data = ng::obfuscation::xorRuntime(xored);
+assert(data.string() == "some string");
 ```
 `DynamicData` has the same methods as `ConstData` with some added constructors for interoperability, and as the name suggests can be of size not known at compile time.
-<br>
-And finally the cherry on top which is `xorRuntimeDecrypted` it is a handy function for string literals that don't need to be manipulated when they're in the encrypted state.
+`xorRuntime` accepts both `DynamicData` and `ConstData`.
+<br><br>
+While we could always decrypt at runtime by first calling `xorConst` and passing the result to `xorRuntime` that's kind of tedious
+Here comes the solution to this problem, the cherry on top which is `xorRuntimeDecrypted` it is a handy function for string literals that don't need to be manipulated when they're in the encrypted state.
 ```cpp
 ng::obfuscation::DynamicData text = ng::obfuscation::xorRuntimeDecrypted<"some string">();
-std::cout << xored.string();
-
+assert(data.string() == "some string");
 ```
 This will print out the same string as we have put in but it sits encrypted in the executable and gets decrypted at runtime. Isn't it cool!.
 
-##### The key
-Now someone might say everything is great but where is the key, in nullgate <NEW VERSION> the key gets randomly generated per each fresh build made!
+#### The key
+Now someone might say everything is great but where is the key? In nullgate 1.2 the key gets randomly generated per each fresh build made!(meaning the cmake command is run)
 This reduces the chance of getting signatured even more.
 
 ### Adding nullgate to your project
@@ -92,7 +97,7 @@ include(FetchContent)
 
 FetchContent_Declare(nullgate
     GIT_REPOSITORY https://github.com/0xsch1zo/NullGate
-    GIT_TAG 1.1.3
+    GIT_TAG 1.2.0 
 )
 
 FetchContent_MakeAvailable(nullgate)
@@ -108,19 +113,22 @@ target_link_libraries(test
 )
 ```
 The linking is done statically so you don't have to worry about symbols being visible.
+
 ## Build
 To build the sample use `-DNULLGATE_BUILD_SAMPLE=ON`. 
 If you built nullgate directly it will be accessible at `<build_dir>/sample.exe`, if you built it as a dependency at `<build_dir>/_deps/nullgate-build/sample.exe`. 
 On windows because the build destinations are weird, it will probably be at the same base directories of locations of samples but probably nested a bunch more.
 It takes a PID that you want to inject shellcode into as an argument.
 > [!WARNING]
-> If you are using linux you need to have the mingw crosscompiler installed. On Arch for example you can do `pacman -S mingw-w64-gcc`. Then use the `-DNULLGATE_CROSSCOMPILE=ON` option to set mingw as the default compiler for the relevant parts of the program.
+> If you are using linux you need to have the mingw cross-compiler installed. On Arch for example you can do `pacman -S mingw-w64-gcc`. Then use the `-DNULLGATE_CROSSCOMPILE=ON` option to set mingw as the default compiler for the relevant parts of the program.
 ```
 git clone https://github.com/0xsch1zo/NullGate
 cd NullGate
 cmake . -B build -DNULLGATE_BUILD_SAMPLE=ON
 cmake --build build/
 ```
+### Deprecated hashser(versions 1.1.3 and below)
+It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
 
 ## Windows defender memory scan bypass
 The core of the issue is that when we call `NtCreateRemoteThreadEx` or `NtCreateProcess`, a memory scan gets triggered and our signatured as hell msfvenom payload gets detected.
