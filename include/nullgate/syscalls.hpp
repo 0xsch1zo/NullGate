@@ -20,7 +20,7 @@ private:
     uintptr_t syscallAddr;
     uintptr_t firstArg;
   };
-  static NTSTATUS NTAPI (*const nullgate_trampoline)(syscallArgs *, ...);
+  static NTSTATUS(NTAPI *const nullgate_trampoline)(syscallArgs *, ...);
 
 private:
   std::map<PDWORD, std::string> stubMap;

@@ -4,7 +4,9 @@
 #include <stdexcept>
 #include <winternl.h>
 
+namespace {
 extern "C" NTSTATUS NTAPI nullgate_trampoline(void *, ...);
+}
 
 namespace nullgate {
 
@@ -17,9 +19,10 @@ syscalls::syscalls() {
   populateSyscalls();
 }
 
-NTSTATUS NTAPI (*const syscalls::nullgate_trampoline)(syscallArgs *, ...) =
+// NIGHTMARE NIGHTMARE NIGHTMARE
+NTSTATUS(NTAPI *const syscalls::nullgate_trampoline)(syscallArgs *, ...) =
     reinterpret_cast<decltype(syscalls::nullgate_trampoline)>(
-        &::nullgate_trampoline); // insanity
+        &::nullgate_trampoline);
 
 using ob = obfuscation;
 
