@@ -7,6 +7,26 @@ Convenient functions for encryption are also available.
 ## Demo
 ![Demonstration of the sample](./assets/demo.gif)
 
+## Build
+To build the sample use `-DNULLGATE_BUILD_SAMPLE=ON`. 
+If you built nullgate directly it will be accessible at `<build_dir>/sample.exe`, if you built it as a dependency at `<build_dir>/_deps/nullgate-build/sample.exe`. 
+On windows because the build destinations are weird, it will probably be at the same base directories of locations of samples but probably nested a bunch more.
+It takes a PID that you want to inject shellcode into as an argument.
+> [!WARNING]
+> If you are using linux you need to have the mingw cross-compiler installed. On Arch for example you can do `pacman -S mingw-w64-gcc`. Then use the `-DNULLGATE_CROSSCOMPILE=ON` option to set mingw as the default compiler.
+
+> [!TIP]
+> It is also recommended to strip the resulting binary to decrease the possibility of detection
+```
+git clone https://github.com/0xsch1zo/NullGate
+cd NullGate
+cmake . -B build -DNULLGATE_BUILD_SAMPLE=ON
+cmake --build build/
+```
+
+### Deprecated hashser(versions 1.1.3 and below)
+It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
+
 ## Usage
 > [!NOTE]
 > The following examples will use `namespace ng = nullgate` 
@@ -124,26 +144,6 @@ target_link_libraries(test
 )
 ```
 The linking is done statically so you don't have to worry about symbols being visible.
-
-## Build
-To build the sample use `-DNULLGATE_BUILD_SAMPLE=ON`. 
-If you built nullgate directly it will be accessible at `<build_dir>/sample.exe`, if you built it as a dependency at `<build_dir>/_deps/nullgate-build/sample.exe`. 
-On windows because the build destinations are weird, it will probably be at the same base directories of locations of samples but probably nested a bunch more.
-It takes a PID that you want to inject shellcode into as an argument.
-> [!WARNING]
-> If you are using linux you need to have the mingw cross-compiler installed. On Arch for example you can do `pacman -S mingw-w64-gcc`. Then use the `-DNULLGATE_CROSSCOMPILE=ON` option to set mingw as the default compiler.
-
-> [!TIP]
-> It is also recommended to strip the resulting binary to decrease the possibility of detection
-```
-git clone https://github.com/0xsch1zo/NullGate
-cd NullGate
-cmake . -B build -DNULLGATE_BUILD_SAMPLE=ON
-cmake --build build/
-```
-
-### Deprecated hashser(versions 1.1.3 and below)
-It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
 
 ## Windows defender memory scan bypass
 The core of the issue is that when we call `NtCreateRemoteThreadEx` or `NtCreateProcess`, a memory scan gets triggered and our signatured as hell msfvenom payload gets detected.
