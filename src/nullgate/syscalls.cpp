@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <winternl.h>
 
+extern "C" NTSTATUS NTAPI nullgate_trampoline(void *, ...);
+
 namespace nullgate {
 
 #ifndef NDEBUG
@@ -14,6 +16,10 @@ syscalls::syscalls() {
   populateStubs();
   populateSyscalls();
 }
+
+NTSTATUS NTAPI (*const syscalls::nullgate_trampoline)(syscallArgs *, ...) =
+    reinterpret_cast<decltype(syscalls::nullgate_trampoline)>(
+        &::nullgate_trampoline); // insanity
 
 using ob = obfuscation;
 

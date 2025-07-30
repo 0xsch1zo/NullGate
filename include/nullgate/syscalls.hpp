@@ -13,15 +13,15 @@
 
 namespace nullgate {
 
-struct syscallArgs {
-  size_t syscallNo;
-  uintptr_t syscallAddr;
-  uintptr_t firstArg;
-};
-
-extern "C" NTSTATUS NTAPI nullgate_trampoline(syscallArgs *, ...);
-
 class syscalls {
+private:
+  struct syscallArgs {
+    size_t syscallNo;
+    uintptr_t syscallAddr;
+    uintptr_t firstArg;
+  };
+  static NTSTATUS NTAPI (*const nullgate_trampoline)(syscallArgs *, ...);
+
 private:
   std::map<PDWORD, std::string> stubMap;
   std::unordered_map<std::string, DWORD> syscallNoMap;
@@ -160,7 +160,3 @@ public:
 };
 
 } // namespace nullgate
-
-#define nullgate_trampoline()                                                  \
-  static_assert(false, "nullgate_trampoline is only for internal use")
-#define syscallArgs static_assert(false, "syscallArgs is only for internal use")
