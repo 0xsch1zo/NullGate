@@ -72,11 +72,10 @@ public:
     return encoded;
   }
 
-  template <std::size_t N> static DynamicData xorRuntime(ConstData<N> data) {
-    DynamicData container{};
-    container.reserve(data.size());
+  template <std::size_t N> static ConstData<N> xorRuntime(ConstData<N> data) {
+    ConstData<N> container{};
     auto iter = std::views::enumerate(data);
-    std::ranges::transform(iter, std::back_inserter(container), xorElement);
+    std::ranges::transform(iter, container.begin(), xorElement);
     return container;
   }
 
@@ -88,7 +87,8 @@ public:
     return container;
   }
 
-  template <LiteralString literal> static DynamicData xorRuntimeDecrypted() {
+  template <LiteralString literal>
+  static ConstData<literal.size> xorRuntimeDecrypted() {
     constexpr auto xored = xorConst(literal.inner);
     return xorRuntime(xored);
   }

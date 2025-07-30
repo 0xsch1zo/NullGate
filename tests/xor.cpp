@@ -1,4 +1,5 @@
 #include <format>
+#include <iostream>
 #include <nullgate/obfuscation.hpp>
 #include <stdexcept>
 
@@ -29,7 +30,14 @@ void testXorConst() {
 void testXorRuntime() {
   auto xored = ob::xorRuntime(ob::DynamicData(testStr));
   auto unxored = ob::xorRuntime(xored);
+
   comp(unxored.string(), testStrView, __FUNCTION__);
+
+  ob::ConstData xored1 = ob::xorRuntime(ob::ConstData(std::to_array(testStr)));
+  ob::ConstData unxored1 = ob::xorRuntime(xored1);
+
+  comp(unxored1.string().substr(0, unxored1.size() - 1), testStrView,
+       __FUNCTION__);
 }
 
 void testXorRuntimeDecrypted() {
