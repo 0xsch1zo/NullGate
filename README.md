@@ -132,13 +132,15 @@ On windows because the build destinations are weird, it will probably be at the 
 It takes a PID that you want to inject shellcode into as an argument.
 > [!WARNING]
 > If you are using linux you need to have the mingw cross-compiler installed. On Arch for example you can do `pacman -S mingw-w64-gcc`. Then use the `-DNULLGATE_CROSSCOMPILE=ON` option to set mingw as the default compiler.
+
+> [!TIP]
+> It is also recommended to strip the resulting binary to decrease the possibility of detection
 ```
 git clone https://github.com/0xsch1zo/NullGate
 cd NullGate
 cmake . -B build -DNULLGATE_BUILD_SAMPLE=ON
 cmake --build build/
 ```
-It is also recommended to strip the resulting binary to decrease the possibility of detection
 
 ### Deprecated hashser(versions 1.1.3 and below)
 It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
