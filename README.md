@@ -28,6 +28,34 @@ cmake --build build/
 It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
 
 ## Usage
+
+### Adding nullgate to your project
+CMake FetchContent is supported. Here is an example of a simple CMakeLists.txt:
+
+```cmake
+cmake_minimum_required(VERSION 3.25)
+
+include(FetchContent)
+
+FetchContent_Declare(nullgate
+    GIT_REPOSITORY https://github.com/0xsch1zo/NullGate
+    GIT_TAG 1.2.0 
+)
+
+FetchContent_MakeAvailable(nullgate)
+
+project(test)
+
+add_executable(test
+    main.cpp
+)
+
+target_link_libraries(test
+    PRIVATE nullgate
+)
+```
+The linking is done statically so you don't have to worry about symbols being visible.
+
 > [!NOTE]
 > The following examples will use `namespace ng = nullgate` 
 
@@ -117,33 +145,6 @@ assert(data.string() == "some string");
 ##### The key
 Now someone might say everything is great but where is the key? In nullgate 1.2 the key gets randomly generated per each fresh build made!(meaning the cmake command is run)
 This reduces the chance of getting signatured even more.
-
-### Adding nullgate to your project
-CMake FetchContent is supported. Here is an example of a simple CMakeLists.txt:
-
-```cmake
-cmake_minimum_required(VERSION 3.25)
-
-include(FetchContent)
-
-FetchContent_Declare(nullgate
-    GIT_REPOSITORY https://github.com/0xsch1zo/NullGate
-    GIT_TAG 1.2.0 
-)
-
-FetchContent_MakeAvailable(nullgate)
-
-project(test)
-
-add_executable(test
-    main.cpp
-)
-
-target_link_libraries(test
-    PRIVATE nullgate
-)
-```
-The linking is done statically so you don't have to worry about symbols being visible.
 
 ## Windows defender memory scan bypass
 The core of the issue is that when we call `NtCreateRemoteThreadEx` or `NtCreateProcess`, a memory scan gets triggered and our signatured as hell msfvenom payload gets detected.
