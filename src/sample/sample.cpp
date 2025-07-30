@@ -132,10 +132,5 @@ int main(int argc, char *argv[]) {
 
   syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"), threadHandle);
 
-  // bogus call to throw off microsoft defendres static analisis because we were
-  // getting flagged without this
-  syscalls.SCall<NtQuerySystemTime>(
-      ng::obfuscation::fnv1Const("NtQuerySystemTime"), nullptr);
-
   syscalls.SCall<NtClose>(ng::obfuscation::fnv1Const("NtClose"), processHandle);
 }

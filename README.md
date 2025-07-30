@@ -138,6 +138,8 @@ cd NullGate
 cmake . -B build -DNULLGATE_BUILD_SAMPLE=ON
 cmake --build build/
 ```
+It is also recommended to strip the resulting binary to decrease the possibility of detection
+
 ### Deprecated hashser(versions 1.1.3 and below)
 It can be built using the `-DNULLGATE_DEPRECATED_HASHER` flag.
 
